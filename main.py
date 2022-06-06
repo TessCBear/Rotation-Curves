@@ -38,6 +38,10 @@ example_data = read_dat("Rotmass\Rotmass\IC4202_rotmass.dat")
 example_df = example_data["frame"]
 
 rad = example_df["Rad"].values #Cylindrical radius
+
+# ---------------- Rho_bulge ---------------------# 
+
+
 sdbul = example_df["SDbul"].values #Surface density
 
 
@@ -66,12 +70,13 @@ def sdbul_prime(R):
 
 # Define final surface density function
 
-def sdbul_final(R):
-    def func(R):
-        return sdbul_prime(R)/R
-    return -1/np.pi * quad(func, 0, np.inf)[0]
+def rho_buldge_final(Rs):
+    for R in Rs:
+        def func(R):
+            return sdbul_prime(R)/R
+        return -1/np.pi * quad(func, 0, np.inf)[0]
 
-sdbul_final(rad)
+
 # # Checking the fit
 # inter = sdbul_interpolated(rad)
 # prime = sdbul_prime(rad)
@@ -82,5 +87,31 @@ sdbul_final(rad)
 # sns.lineplot(x=rad, y=inter)
 # sns.lineplot(x=rad, y=prime)
 # plt.show()
+
+# ---------------------- Rho_gas ----------------------- #
+sdgas = example_df["SDgas"].values 
+
+def surface_density_gas(R, sigma0, c1, c2, c3, c4, R_sig):
+    return sigma0*(1 + c1*R + c2*R**2 + c3*R**3 + c4*R**4) * np.exp(-R/R_sig)
+
+qopt, qcov = curve_fit(surface_density_gas, rad, sdgas, maxfev=5000) 
+
+def sdgas_interpolated(R):
+    return surface_density_gas(R, qopt[0], qopt[1], qopt[2], qopt[3], qopt[4], qopt[5])
+
+# # Checking the fit
+
+# inter_gas = sdgas_interpolated(rad)
+# p = sns.scatterplot(x=rad, y=sdgas)
+# p.set_xlabel("Radius")
+# p.set_ylabel("Surface Density")
+# sns.lineplot(x=rad, y=inter_gas)
+# plt.show()
+
+def rho_gas(R):
+    return 1.4 * sdgas_interpolated(R)/ (np.sqrt(2*np.pi)* 0.130e3) # 1.4 to account for lack of H2 data. 0.130e3 is 0.130 kpc from Hossenfelder et al
+
+
+
 
 
