@@ -111,6 +111,10 @@ def sdgas_interpolated(R):
 def rho_gas(R):
     return 1.4 * sdgas_interpolated(R)/ (np.sqrt(2*np.pi)* 0.130e3) # 1.4 to account for lack of H2 data. 0.130e3 is 0.130 kpc from Hossenfelder et al
 
+# TO-DO: 
+# Plot Vobs and rad as well as the other Vs to see if Vdisk is a percentage/actual numerical contribution. 
+# See if can implement Vdisk directly into the rotation curve so that don't have to model density
+
 
 
 
