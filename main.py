@@ -70,11 +70,11 @@ def sdbul_prime(R):
 
 # Define final surface density function
 
-def rho_buldge_final(Rs):
-    for R in Rs:
-        def func(R):
-            return sdbul_prime(R)/R
-        return -1/np.pi * quad(func, 0, np.inf)[0]
+def rho_buldge_final(R):
+    
+    def func(R):
+        return sdbul_prime(R)/R
+    return -1/np.pi * quad(func, 0, np.inf)[0]
 
 
 # # Checking the fit
@@ -111,11 +111,68 @@ def sdgas_interpolated(R):
 def rho_gas(R):
     return 1.4 * sdgas_interpolated(R)/ (np.sqrt(2*np.pi)* 0.130e3) # 1.4 to account for lack of H2 data. 0.130e3 is 0.130 kpc from Hossenfelder et al
 
-# TO-DO: 
-# Plot Vobs and rad as well as the other Vs to see if Vdisk is a percentage/actual numerical contribution. 
-# See if can implement Vdisk directly into the rotation curve so that don't have to model density
+#--------------------Rho_disk (*)---------------------------#
 
+sddisk = example_df["SDdisk"]
 
+def rho_disk(z, R, rho_0, Rstar):
+    zstar = 0.196*Rstar**0.633 #kpc following Hossenfelder
+    return rho_0*np.exp(-R/Rstar)*(1-(np.tanh(z/zstar))**2)
 
+def surface_density_disk(Rs, rho_0, Rstar):
+    if hasattr(Rs, '__len__'):
+        return [2 * quad(rho_disk, 0, np.inf, args=(R, rho_0, Rstar))[0] for R in Rs]
+    else:
+        return 2 * quad(rho_disk, 0, np.inf, args=(Rs, rho_0, Rstar))[0]
 
+ropt, rcov = curve_fit(surface_density_disk, rad, sddisk) 
 
+def sddisk_interpolated(R):
+    return surface_density_disk(R, ropt[0], ropt[1])
+
+def rho_disk_final(R):
+    return sddisk_interpolated(R)/(np.sqrt(2*np.pi)*0.196*ropt[1]**0.633)
+
+# # Checking the fit
+# inter = sddisk_interpolated(rad)
+
+# p = sns.scatterplot(x=rad, y=sddisk)
+# p.set_xlabel("Radius")
+# p.set_ylabel("Surface Density")
+# sns.lineplot(x=rad, y=inter)
+# plt.show()
+
+#-----------------------Final expressions------------------------------#
+G = 6.67e-11
+Mplanck = 2.18e-8
+
+vobs = example_df["Vobs"]
+
+def rho(R, Q):
+    return rho_gas(R) + 0.5*Q*rho_disk_final(R) + 0.7*Q*rho_buldge_final(R)
+
+def mass(R, Q):
+    return 4/3 * np.pi * R**3 * rho(R, Q)
+
+def v(Rs, Q):
+    alpha = 5.7
+    lamb = 0.05
+    if hasattr(Rs, '__len__'):
+        return [np.sqrt(R*(G*mass(R, Q) + np.sqrt((alpha**3 * lamb**2/ Mplanck)* G * mass(R, Q)))) for R in Rs]
+    else:
+        return np.sqrt(Rs*(G*mass(Rs, Q) + np.sqrt((alpha**3 * lamb**2/ Mplanck)* G * mass(Rs, Q))))
+
+sopt, scov = curve_fit(v, rad, vobs, bounds=(1e-2, 15))
+print(sopt)
+
+def v_interpolated(R):
+    return v(R, sopt[0])
+
+v_inter = [v_interpolated(R) for R in rad]
+
+rc = sns.lineplot(x=rad, y=v_inter, label = "Model")
+sns.scatterplot(x=rad, y=vobs, label = "Vobs data")
+rc.set_xlabel("Radius")
+rc.set_ylabel("Velocity")
+rc.legend()
+plt.show()
