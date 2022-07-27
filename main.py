@@ -35,14 +35,15 @@ example_data = read_dat("Rotmass\Rotmass\IC4202_rotmass.dat")
 example_df = example_data["frame"]
 
 IC = Galaxy(example_df)
+rad = IC.rad
+print(rad)
+# v_inter = IC.v_inter
+# vobs = IC.vobs
 
-# Checking the fit
-inter = IC.sdbul_interpolated()
-prime = IC.sdbul_prime()
 
-p = sns.scatterplot(x=IC.rad, y=IC.sdbul)
-p.set_xlabel("Radius")
-p.set_ylabel("Surface Density")
-sns.lineplot(x=rad, y=inter)
-sns.lineplot(x=rad, y=prime)
-plt.show()
+# rc = sns.lineplot(x=rad, y=v_inter, label = "Model")
+# sns.scatterplot(x=rad, y=vobs, label = "Vobs data")
+# rc.set_xlabel("Radius")
+# rc.set_ylabel("Velocity")
+# rc.legend()
+# plt.show()
